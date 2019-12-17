@@ -14,7 +14,9 @@ def parse_input(str):
     return num_lst
 
 
-def execute(inpt):
+def execute(inpt=None):
+    if inpt == None:
+        inpt = str_inpt[:]
     i = 0
     while True:
         if i > len(inpt): return
@@ -23,8 +25,8 @@ def execute(inpt):
             pos1 = inpt[i+1]
             pos2 = inpt[i+2]
             pos3 = inpt[i+3]
-            sum = inpt[pos1] + inpt[pos2]
-            inpt[pos3] = sum
+            sum_ = inpt[pos1] + inpt[pos2]
+            inpt[pos3] = sum_
             i += 4
         elif inpt[i] == 2:
             pos1 = inpt[i + 1]
@@ -34,8 +36,22 @@ def execute(inpt):
             inpt[pos3] = mult
             i += 4
         elif inpt[i] == 99:
-            print(inpt)
-            return
+            #print(inpt)
+            return 0
         else:
             print("something went very wrong.", i, inpt[i])
-            return
+            return -1
+
+def find_input(output = 19690720):
+    for i in range(99):
+        for j in range(99):
+            program = str_input[:]
+            program[1] = i
+            program[2] = j
+
+            if execute(program) == -1: return
+            if program[0] == output:
+                print(100 * i + j)
+                print(i, j)
+                return
+

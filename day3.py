@@ -7,7 +7,6 @@ def find_intersections(wires=None):
         wires = [wire1, wire2]
 
     grid = {}
-    intersections = set()
 
     for w in range(2):
         wire = wires[w]
@@ -24,18 +23,15 @@ def find_intersections(wires=None):
                 pos_key = (position[0], position[1])
 
                 if pos_key in grid:
-                    if i not in grid[pos_key]:
-                        grid[pos_key].add(w)
-                        if len(grid[pos_key]) == len(wires):
-                            intersections.add(pos_key)
-                        elif len(grid[pos_key]) > len(wires):
-                            print("Sometring is wrong", len(grid[pos_key]))
+                    if not grid[pos_key][w][0]:
+                        grid[pos_key][w][0] = True
+                        grid[pos_key][w][1] = i
                 else:
-                    grid[pos_key] = set()
-                    grid[pos_key].add(w)
+                    grid[pos_key] = [[False, -1], [False, -1]]
+                    grid[pos_key][w][0] = True
+                    grid[pos_key][w][1] = i
 
-    print(intersections)
-    return intersections
+    return grid
 
 
 def get_closest_intersection(intersections):
@@ -50,14 +46,24 @@ def get_closest_intersection(intersections):
     return closest_intersection
 
 
-def minimize_wire_length(intersections):
-    closest_distance = 999999999999
-
+def get_shortest_intersection(grid):
+    print(grid)
+    min_length = 99999999999
+    for key, value in grid.items():
+        for i in range(len(value)):
+            if not value[i][0]: skip = True
+        if not skip:
+            lenght = 0
+            for i in range(len(value)):
+                lenght += min(*value[i][1])
+            if lenght < min_length:
+                min_length = lenght
+    return min_length
 
 
 def run():
-    intersections = find_intersections()
-    solution = get_closest_intersection(intersections)
+    grid = find_intersections()
+    solution = get_shortest_intersection(grid)
     print(solution)
 
 

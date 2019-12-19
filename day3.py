@@ -11,6 +11,7 @@ def find_intersections(wires=None):
     for w in range(2):
         wire = wires[w]
         position = [0, 0]
+        length = 0
         for t in wire.split(","):
             direction = t[0]
             movement = int(t[1:])
@@ -21,15 +22,16 @@ def find_intersections(wires=None):
                 if direction == "D": position[0] += -1
             
                 pos_key = (position[0], position[1])
+                length += 1
 
                 if pos_key in grid:
                     if not grid[pos_key][w][0]:
                         grid[pos_key][w][0] = True
-                        grid[pos_key][w][1] = i
+                        grid[pos_key][w][1] = length
                 else:
                     grid[pos_key] = [[False, -1], [False, -1]]
                     grid[pos_key][w][0] = True
-                    grid[pos_key][w][1] = i
+                    grid[pos_key][w][1] = length
 
     return grid
 
@@ -50,14 +52,18 @@ def get_shortest_intersection(grid):
     print(grid)
     min_length = 99999999999
     for key, value in grid.items():
+        skip = False
         for i in range(len(value)):
-            if not value[i][0]: skip = True
+            if not value[i][0]:
+                skip = True
+                break
+
         if not skip:
-            lenght = 0
+            length = 0
             for i in range(len(value)):
-                lenght += min(*value[i][1])
-            if lenght < min_length:
-                min_length = lenght
+                length += value[i][1]
+            if length < min_length:
+                min_length = length
     return min_length
 
 

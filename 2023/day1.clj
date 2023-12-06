@@ -31,15 +31,17 @@ zoneight234
 (def r-forward (re-pattern (str "[0-9]|" num-re)))
 (def r-backward (re-pattern (str "[0-9]|" (str/reverse num-re))))
 
-(def get-num fn[s] (str (re-find r-forward s) (re-find r-backward (str/reverse s))))
+(def get-num (fn [s] [(re-find r-forward s) (str/reverse (re-find r-backward (str/reverse s)))]))
 
-(def get-all-nums (fn [s] map (re-seq num-re s)))
 (def word-to-num {"one" 1, "two" 2, "three" 3, "four" 4, "five" 5, "six" 6, "seven" 7, "eight" 8, "nine" 9})
 (def conv-to-num (fn [s] (if (re-matches #"[0-9]" s) s (word-to-num s))))
-(def make-f-l-num (fn [s] (str (conv-to-num (first s)) (conv-to-num (last s)))))
+(def make-f-l-num (fn [num] (reduce str (map conv-to-num num))))
+
+(make-f-l-num ["one", "2"])
 
 (re-find #"zero|one|two|three|four|five|six|seven|eight|nine|[0-9]" "twone")
 
 (reduce + 
-        (map (comp read-string make-f-l-num get-all-nums) (str/split input #"\n")))
+        (map (comp read-string make-f-l-num get-num) (str/split input #"\n")))
+
 

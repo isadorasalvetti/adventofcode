@@ -86,35 +86,39 @@ humidity-to-location map:
 
 (defn get-next-range [bound target-bounds replace-bounds new-bounds]
   (if (empty? target-bounds) (conj new-bounds bound) 
-      (if (> (count new-bounds) 10) new-bounds
+      (if (> (count new-bounds) 100) new-bounds
           (let [to-compare (first target-bounds)
                 to-replace (replace-bounds to-compare)
                 range-lenght (- (second bound) (first bound))
                 dist-to-start (- (first bound) (first to-compare))
                 dist-to-end (- (second to-compare) (second bound))]
 
-            (print bound target-bounds to-replace range-lenght dist-to-start dist-to-end new-bounds "\n")
+            ;(print bound target-bounds to-replace range-lenght dist-to-start dist-to-end new-bounds "\n")
 
             (if (>= dist-to-start 0)
               (if (>= dist-to-end 0)
                 (conj new-bounds [(+ (first to-replace) dist-to-start)
                                   (- (second to-replace) dist-to-end)])
-                (if (< (+ range-lenght dist-to-end) 0)
+                (if (<= (+ range-lenght dist-to-end) 0)
                   (get-next-range bound (rest target-bounds) replace-bounds new-bounds)
                   
                   (let [cut-point (+ (last bound) dist-to-end)]
                     (get-next-range [(first bound) cut-point] target-bounds replace-bounds
-                                    (conj new-bounds
-                                          [(+ cut-point 1) (last bound)])))))
+                                    (concat new-bounds
+                                          (get-next-range [(+ cut-point 1) (last bound)] 
+                                                          target-bounds 
+                                                          replace-bounds
+                                                          new-bounds))))))
               
-              (if (< (+ range-lenght dist-to-start) 0)
+              (if (<= (+ range-lenght dist-to-start) 0)
                 (get-next-range bound (rest target-bounds) replace-bounds new-bounds)
                 (let [cut-point (+ (first bound) dist-to-start)]
                   (get-next-range [(+ cut-point 1) (last bound)] target-bounds replace-bounds
-                                  (conj new-bounds
-                                        [(first bound) cut-point])))))))))
-
-
+                                  (concat new-bounds
+                                          (get-next-range [(first bound) cut-point]
+                                                          target-bounds
+                                                          replace-bounds
+                                                          new-bounds))))))))))
 
 (get-next-range [79 93] (sort '([98 100] [50 98])) {[98 100] [50 52], [50 98] [52 100]} [])
 
@@ -128,12 +132,12 @@ humidity-to-location map:
 (defn process-ranges [seeds maps]
   (let [flat-seeds (reduce concat seeds)
         new-ranges (map #(range-to-ranges % (first maps)) flat-seeds)]
-    (print flat-seeds  "\n")
+    ;(print flat-seeds  "\n")
     (if (empty? maps) seeds (process-ranges new-ranges (rest maps)))))
 
-(let [parsed-input (parse-input sample)
+(let [parsed-input (parse-input input)
       seeds (partition 2 (first parsed-input))
       seed-bounds (map amm-to-range seeds)
       maps (->> (rest parsed-input) (map #(partition 3 %)))] 
-  (process-ranges [seed-bounds] maps))
+  (sort (reduce concat (process-ranges [seed-bounds] maps))))
 

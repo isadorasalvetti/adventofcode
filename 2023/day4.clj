@@ -51,7 +51,7 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11"))
 
 
 
-;P1
+; P1
 ( ->> input
  (parse-input)
  (map point-card-win)
@@ -59,15 +59,13 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11"))
 )
 
 
-;P2
-(defn recurse-cards [cards to-process counter] ; Yay for stack overflow! :(
-  (print "ran!")
+; ----
+(defn recurse-cards [cards to-process counter] ; Yay for stack overflow! :( 
   (let [curr-card (first to-process)
         curr-card-id (first curr-card)
         curr-wins (second curr-card)
         to-add (subvec cards (+ curr-card-id 1) (+ curr-card-id curr-wins 1))
-        next-to-process (concat to-add (rest to-process))]
-    (print [curr-card-id curr-wins counter])
+        next-to-process (concat to-add (rest to-process))] 
     (if (not-empty next-to-process)
       (recurse-cards cards next-to-process (+ counter 1))
       (+ counter 1)))
@@ -79,10 +77,9 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11"))
          to-add (subvec cards (+ curr-card-id 1) (+ curr-card-id curr-wins 1))
        ]
     (+ curr-wins (reduce + (map #(cards-added cards %) to-add)))
-    )
-  )
+    ))
 
-
+; P2
 (let [indexed-cards (->> input
                          (parse-input)
                          (map count-card-win)
@@ -90,7 +87,6 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11"))
   (->> (map #(cards-added (into (vector) indexed-cards) %) indexed-cards)
        (reduce +)
        (+ (count indexed-cards))
-       )
-  )
+       ))
 
 

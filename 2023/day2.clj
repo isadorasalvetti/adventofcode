@@ -28,6 +28,7 @@ Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green"))
                            (reduce max (line-to-num line r-green))
                            (reduce max (line-to-num line r-blue))]))
 
+(def line-power (fn [line] (reduce * (min-cubes line))))
 
 (def count-possible (fn [text] 
                       (->> (str/split text #"\n")
@@ -35,12 +36,21 @@ Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green"))
                            (filter last)
                            (map #(+ (first %) 1))
                            (reduce +))))
+
+(def sum-powers (fn [text]
+                  (->> (str/split text #"\n")
+                       (map line-power)
+                       (reduce +))))
+
 ;P1
 (count-possible input)
+
+;P2
+(sum-powers input)
 
 (comment
   (possible-game? 1 "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green")
   (possible-game? 1 "Game 1: 3 blue, 4 red; 1 red, 2 green, 16 blue; 2 green")
   (line-to-num "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green" r-blue)
-  (min-cubes "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green")
+  (line-power "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green")
   )

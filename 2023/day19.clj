@@ -120,40 +120,38 @@ hdj{m>838:A,pv}
 
 
 ; P2
-
 (defn make-split-range [gear-ranges g op num]
   (let [[a b] (gear-ranges g)
         [pass fail] (if (= op "<")
                       [[a (- num 1)] [num b]]
-                      [[num b] [a (+ num 1)]])]
+                      [[(+ num 1) b] [a num]])]
     [(assoc gear-ranges g pass) (assoc gear-ranges g fail)]))
 
 (def starting-gear {(str "x") [1 4000], (str "m") [1 4000], (str "a") [1 4000], (str "s") [1 4000]})
 (defn assoc-range [gear-ranges instructions]
   (let [[dest g op num] (first instructions)]
     ;(println "Processing" gear-ranges instructions)
-    (if (not (some? g)) [{dest [gear-ranges]}]
+    (if (not (some? g)) {dest [gear-ranges]}
         (let [[s l] (gear-ranges g)]
           (cond
             (or (and (= op ">") (> s num))  ; all passes
-                (and (= op "<") (< l num))) [{dest [gear-ranges]}]
+                (and (= op "<") (< l num))) {dest [gear-ranges]}
             (or (and (= op ">") (< l num))
                 (and (= op "<") (> s num))) (assoc-range gear-ranges (rest instructions))
             :else (let [[succ fail] (make-split-range gear-ranges g op num)]
-                    (into {dest [succ]} (assoc-range fail (rest instructions)))))))))
+                    (assoc-join-col (assoc-range fail (rest instructions)) dest [succ])))))))
 
-(reduce into [{1 {2 3}} {2 {2 3}}])
+(assoc-range starting-gear [["A" "x" ">" 3000] ["R"]])
 
 (defn do-all-ranges [gear-buckets instructions complete]
-  ;(println gear-buckets)
+  ;(println gear-buckets "todo")
   (if (empty? gear-buckets) complete
       (let [[bucket gs] (first gear-buckets)
+            ;a (println bucket gs "curr")
             new-buckets (reduce into
                                 (map #(assoc-range % (instructions bucket)) gs))
-            ;a (println new-buckets "Found")
             [merged-gears merged-complete]
             (merge-buckets new-buckets (dissoc gear-buckets bucket) complete)
-            ;a (println merged-gears "Merged")
             ]
         (do-all-ranges merged-gears instructions merged-complete))))
 
@@ -161,10 +159,11 @@ hdj{m>838:A,pv}
   (->> ((do-all-ranges {"in" [starting-gear]} instructions {}) "A")
        (map vals)
        (map #(map (partial apply -) %))
+       (map #(map abs %))
+       (map #(map (partial + 1) %))
        (map (partial reduce *))
        (reduce +)
        ))
-
 
 (comment
   (first (assoc-range starting-gear [["A" "x" "<" 3000] ["R"]])))

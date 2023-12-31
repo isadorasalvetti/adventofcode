@@ -50,28 +50,61 @@
 (defn to-remove? [[block supporting] block-supporting]
   (let [supported-elsewhere (vals (dissoc block-supporting block))
         se-set (reduce into (set []) supported-elsewhere)]
-    (if (empty? supporting) (do 
-                              ;(println block "Supports nothing") 
-                              true)
-        (if (every? #(contains? se-set %) supporting)
-          (do 
-            ;(println block "Supported elsewere") 
-            true)
-          (do 
-            ;(println block "Only support") 
-            false)))))
+    (if (empty? supporting) true
+        (every? #(contains? se-set %) supporting))))
+
+(defn is-single-support [[block supporting] block-supporting]
+  (let [supported-elsewhere (vals (dissoc block-supporting block))
+        se-set (reduce into (set []) supported-elsewhere)]
+    [block (filter #(not (contains? se-set %)) supporting)]    
+    ))
+
+(defn assoc-reverse [values key dict]
+  (if (empty? values) dict
+      (assoc-reverse (rest values) key
+                     (assoc dict (first values) 
+                            (conj (dict (first values)) key)))))
+
+(defn supported-by [supporting]
+  (loop [to-do supporting 
+         acc {}]
+    (if (empty? to-do) acc
+        (let [[block sup] (first to-do)]
+          (recur (rest to-do)
+                 (assoc-reverse sup block acc))))))
+
+(defn will-fall? [candidate fallen supported]
+  ;(println candidate (supported candidate) fallen)
+  (every? #(contains? fallen %) (supported candidate)))
+
+(defn would-fall [to-fall supporting supported fallen acc]
+  (if (empty? to-fall) acc
+      (let [falling (first to-fall)
+            u-fallen (conj fallen falling)
+            candidates-to-fall (supporting falling)
+            actual-fallen (filter #(will-fall? % u-fallen supported)
+                                  candidates-to-fall)]
+        ;(println acc falling candidates-to-fall actual-fallen) 
+        (would-fall (into (rest to-fall) actual-fallen)
+                    supporting supported u-fallen (inc acc)))))
+
+(defn p1 [supporting] (->> (filter #(to-remove? % supporting) supporting)
+                           (count)))
+
+(defn p2 [fallen supporting supported] 
+  (->> (map 
+        #(would-fall [%] supporting supported (set {}) -1) 
+        fallen)
+       (reduce +)))
 
 (let [parsed-input (sort-by #(first (last %)) (parse-input input))
       fallen (fall-blocks parsed-input)
       supporting (loop [to-process fallen acc {}]
                    (if (empty? to-process) acc
                        (recur (rest to-process)
-                              (into acc [(supporting-next to-process)]))))]
-  ;(println supporting)
-  (->> (filter #(to-remove? % supporting) supporting)
-       (count)
-       ))
-
-(comment
-  (overlaps-cube [[1 1] [1 1] [8 9]] [[1 1] [1 1] [8 9]])
-  (overlaps-cube [[2 2] [1 1] [8 9]] [[1 1] [1 1] [8 9]]))
+                              (into acc [(supporting-next to-process)]))))
+      supported (supported-by supporting)] 
+  
+  (println "P1" (p1 supporting))
+  (println "P2" (p2 fallen supporting supported))
+  )

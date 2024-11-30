@@ -1,0 +1,11 @@
+package main
+
+import (
+	"os",
+	"fmt"
+)
+
+func main() {
+	input, err = os.ReadFile("input/2020-1.txt")
+	fmt.Println(string(input))
+}

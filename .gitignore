@@ -1,0 +1,13 @@
+*/input/
+
+*/__pycache__/
+*.py[cod]
+*$py.class
+*/.idea
+
+*/.calva/
+*/.clj-kondo/
+*/.lein-repl-history
+*/.lsp/
+*/.nrepl-port
+*/target/

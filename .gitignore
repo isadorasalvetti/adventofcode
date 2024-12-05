@@ -1,4 +1,6 @@
 */input/
+*/_input/
+*/_sample/
 
 */__pycache__/
 *.py[cod]

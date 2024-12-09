@@ -12,13 +12,92 @@ func main() {
 func readDisk(file string) {
 	contents_, _ := os.ReadFile(file)
 	contents := string(contents_)
-	fmt.Println(reReadDisk(contents, 0, len(contents)/2, 0, 0, 0, true, 0))
-
-	sum_pos := 0
-	for _, i := range contents {
-		sum_pos += int(i - '0')
+	lines, gaps, file_dists := split(contents)
+	filed, unfiled := organizeFiles2(lines, gaps, file_dists, make([][]int, 0), make(map[int]int))
+	fmt.Println(filed, unfiled)
+	acc := 0
+	places := 0
+	for _, file := range filed {
+		places += unfiled[places]
+		for i := 0; i < file[1]; i++ {
+			acc += file[0] * (places + i)
+			fmt.Println(file[0], places+i)
+		}
+		places += file[1]
 	}
-	fmt.Println(deFragment(contents, 0, len(contents)/2-1, 0, sum_pos, true, 0))
+	fmt.Println(acc)
+}
+
+func split(line string) ([]int, []int, []int) {
+	files := make([]int, len(line)/2)
+	file_dists := make([]int, len(line)/2)
+	gaps := make([]int, len(line)/2)
+	dist_acc := 0
+	for i, val := range line {
+		if i%2 == 0 {
+			files[i/2] = int(val - '0')
+			file_dists[i/2] = dist_acc
+			dist_acc += files[i/2]
+		} else {
+			gaps[i/2] = int(val - '0')
+			dist_acc += gaps[i/2]
+		}
+	}
+	return files, gaps, file_dists
+}
+
+func organizeFiles(files, gaps, file_dists []int, filed_gaps [][]int, unfiled_gaps map[int]int) ([][]int, map[int]int) {
+	for i := 0; i < len(files); i++ {
+		if files[i] > 0 {
+			filed_gaps = append(filed_gaps, []int{i, files[i]})
+			files[i] = 0
+		}
+		if gaps[i] > 0 {
+			for j := len(files) - 1; j >= 0; j-- {
+				if j == 0 {
+					filed_gaps = append(filed_gaps, []int{0, gaps[i]})
+					gaps[i] = 0
+				} else if files[j] > 0 && files[j] <= gaps[i] {
+					filed_gaps = append(filed_gaps, []int{j, files[j]})
+					unfiled_gaps[file_dists[j]] = files[j]
+					gaps[i] = gaps[i] - files[j]
+					files[j] = 0
+					return organizeFiles(files, gaps, file_dists, filed_gaps, unfiled_gaps)
+				}
+			}
+		}
+	}
+	return filed_gaps, unfiled_gaps
+}
+
+func organizeFiles2(files, gaps, file_dists []int, filed_gaps [][]int, unfiled_gaps map[int]int) ([][]int, map[int]int) {
+	for f := 0; f < len(files)*2-1; f++ {
+		if f%2 == 0 {
+			if files[f/2] > 0 {
+				fmt.Println(f/2, files[f/2])
+				filed_gaps = append(filed_gaps, []int{f, files[f/2]})
+				files[f/2] = 0
+			}
+		} else {
+			for j := len(files) - 1; j >= f/2; j-- {
+				for i := 0; i < len(gaps); i++ {
+					if j == 0 {
+						fmt.Println(j, files[j])
+						filed_gaps = append(filed_gaps, []int{i, gaps[i]})
+						files[j] = 0
+					} else if files[j] > 0 && files[j] <= gaps[i] {
+						fmt.Println(j, files[j])
+						filed_gaps = append(filed_gaps, []int{j, files[j]})
+						unfiled_gaps[file_dists[j]] = files[j]
+						gaps[i] = gaps[i] - files[j]
+						files[j] = 0
+						return organizeFiles2(files, gaps, file_dists, filed_gaps, unfiled_gaps)
+					}
+				}
+			}
+		}
+	}
+	return filed_gaps, unfiled_gaps
 }
 
 func reReadDisk(toRead string, left_file_id, right_file_id, right_file_size, lenght_remaining, block_position int, is_file bool, acc int) int {

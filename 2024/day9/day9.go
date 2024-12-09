@@ -13,7 +13,12 @@ func readDisk(file string) {
 	contents_, _ := os.ReadFile(file)
 	contents := string(contents_)
 	fmt.Println(reReadDisk(contents, 0, len(contents)/2, 0, 0, 0, true, 0))
-	fmt.Println(deFragment(contents, 0, len(contents)/2-1, 0, true, 0))
+
+	sum_pos := 0
+	for _, i := range contents {
+		sum_pos += int(i - '0')
+	}
+	fmt.Println(deFragment(contents, 0, len(contents)/2-1, 0, sum_pos, true, 0))
 }
 
 func reReadDisk(toRead string, left_file_id, right_file_id, right_file_size, lenght_remaining, block_position int, is_file bool, acc int) int {
@@ -57,8 +62,8 @@ func reReadDisk(toRead string, left_file_id, right_file_id, right_file_size, len
 	return reReadDisk(toRead, left_file_id, right_file_id, right_file_size, lenght_remaining, block_position, true, acc)
 }
 
-func deFragment(toRead string, left_file_id, righ_max_id, block_position int, is_file bool, acc int) int {
-	if len(toRead) == 0 {
+func deFragment(toRead string, left_file_id, right_file_id, block_position_left, block_position_right int, is_file bool, acc int) int {
+	if right_file_id <= left_file_id {
 		return acc
 	}
 
@@ -67,38 +72,57 @@ func deFragment(toRead string, left_file_id, righ_max_id, block_position int, is
 	currLen := int(toRead[0] - '0')
 	if is_file {
 		for i := 0; i < currLen; i++ {
-			fmt.Println(left_file_id, block_position, "left")
-			acc += left_file_id * block_position
-			block_position += 1
+			fmt.Println(left_file_id, block_position_left, "left")
+			acc += left_file_id * block_position_left
+			block_position_left += 1
 		}
 		left_file_id += 1
-		return deFragment(toRead[1:], left_file_id, righ_max_id, block_position, false, acc)
+		return deFragment(toRead[1:], left_file_id, right_file_id, block_position_left, block_position_right, false, acc)
 	}
 
 	right_pos := len(toRead) - 2
-	ri := righ_max_id
-	fmt.Println("Looking for fit for ", currLen)
-	for right_pos > 0 {
-		file_to_place := int(toRead[right_pos] - '0')
-		if file_to_place > 0 && file_to_place <= currLen {
-			fp := int(toRead[right_pos] - '0')
-			fmt.Println("Found", ri, file_to_place, currLen, "right")
-			for fp > 0 {
-				fmt.Println(ri, block_position, "right")
-				acc += ri * block_position
-				block_position += 1
-				fp -= 1
+	to_move := int(toRead[right_pos] - '0')
+	space_id := 0
+	skipped_spaces := 0
+	fmt.Println("Moving", to_move)
+	for space_id <= len(toRead)-2 {
+		space_to_fill := int(toRead[space_id] - '0')
+		fmt.Println("Moving into ", space_id, space_to_fill)
+
+		if space_to_fill >= to_move {
+			for to_move > 0 {
+				fmt.Println(right_file_id, (block_position_left + skipped_spaces), "right moves")
+				acc += right_file_id * (block_position_left + skipped_spaces)
+				block_position_right -= 1
+				space_to_fill -= 1
+				to_move -= 1
 			}
-			diff := currLen - file_to_place
-			toRead = toRead[:right_pos] + "0" + toRead[right_pos+1:]
-			if diff > 0 && file_to_place > 0 {
-				toRead = toRead[:1] + string('0'+diff) + toRead[1:]
-				return deFragment(toRead[1:], left_file_id, righ_max_id, block_position, false, acc)
+			if space_to_fill > 0 {
+				fmt.Println("Add new space")
+				toRead = toRead[0:space_id] + string('0'+space_to_fill) + toRead[space_id+1:len(toRead)-2]
+				is_file = false
+			} else {
+				toRead = toRead[0:space_id] + toRead[space_id+1:len(toRead)-2]
+				is_file = true
 			}
+			right_file_id -= 1
 			break
 		}
-		right_pos -= 2
-		ri -= 1
+		skipped_spaces += int(toRead[space_id] - '0')
+		skipped_spaces += int(toRead[space_id+1] - '0')
+		space_id += 2
 	}
-	return deFragment(toRead[1:], left_file_id, righ_max_id, block_position, true, acc)
+	if to_move > 0 {
+		for to_move > 0 {
+			fmt.Println(right_file_id, block_position_right, "right stays")
+			acc += right_file_id * block_position_right
+			block_position_right -= 1
+			to_move -= 1
+		}
+		is_file = false
+		block_position_right -= int(toRead[(len(toRead)-2)] - '0')
+		toRead = toRead[:len(toRead)-2]
+		right_file_id -= 1
+	}
+	return deFragment(toRead, left_file_id, right_file_id, block_position_left, block_position_right, is_file, acc)
 }

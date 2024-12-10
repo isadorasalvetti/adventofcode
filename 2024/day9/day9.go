@@ -81,30 +81,6 @@ func organizeFiles2(files, gaps []int) (map[int][][]int, []int, []int, []int) {
 	return filed_gaps, files, gaps, gaps_created
 }
 
-func organizeFiles(files, gaps, file_dists []int, filed_gaps [][]int, unfiled_gaps map[int]int) ([][]int, map[int]int) {
-	for i := 0; i < len(files); i++ {
-		if files[i] > 0 {
-			filed_gaps = append(filed_gaps, []int{i, files[i]})
-			files[i] = 0
-		}
-		if gaps[i] > 0 {
-			for j := len(files) - 1; j >= 0; j-- {
-				if j == 0 {
-					filed_gaps = append(filed_gaps, []int{0, gaps[i]})
-					gaps[i] = 0
-				} else if files[j] > 0 && files[j] <= gaps[i] {
-					filed_gaps = append(filed_gaps, []int{j, files[j]})
-					unfiled_gaps[file_dists[j]] = files[j]
-					gaps[i] = gaps[i] - files[j]
-					files[j] = 0
-					return organizeFiles(files, gaps, file_dists, filed_gaps, unfiled_gaps)
-				}
-			}
-		}
-	}
-	return filed_gaps, unfiled_gaps
-}
-
 func reReadDisk(toRead string, left_file_id, right_file_id, right_file_size, lenght_remaining, block_position int, is_file bool, acc int) int {
 	if len(toRead) == 0 {
 		for right_file_size > 0 {

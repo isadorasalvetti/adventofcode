@@ -1,3 +1,4 @@
+// Lets not do this again
 package main
 
 import (
@@ -6,44 +7,78 @@ import (
 )
 
 func main() {
-	readDisk("../_sample/day9.txt")
+	readDisk("../_input/day9.txt")
 }
 
 func readDisk(file string) {
 	contents_, _ := os.ReadFile(file)
 	contents := string(contents_)
-	lines, gaps, file_dists := split(contents)
-	filed, unfiled := organizeFiles2(lines, gaps, file_dists, make([][]int, 0), make(map[int]int))
-	fmt.Println(filed, unfiled)
+	lines, gaps := split(contents)
+	filed_gaps, unmoved_files, free_gaps, gaps_created := organizeFiles2(lines, gaps)
+	step := 0
 	acc := 0
-	places := 0
-	for _, file := range filed {
-		places += unfiled[places]
-		for i := 0; i < file[1]; i++ {
-			acc += file[0] * (places + i)
-			fmt.Println(file[0], places+i)
+	place := 0
+	for i := 0; i < len(unmoved_files); i++ {
+
+		if i < len(gaps_created) {
+			place += gaps_created[i]
 		}
-		places += file[1]
+
+		step = 0
+		for j := 0; j < unmoved_files[i]; j++ {
+			step += i * place
+			place += 1
+		}
+		acc += step
+
+		for _, file := range filed_gaps[i] {
+			step = 0
+			for j := 0; j < file[1]; j++ {
+				step += file[0] * place
+				place += 1
+			}
+			acc += step
+		}
+
+		if i < len(free_gaps) {
+			place += free_gaps[i]
+		}
+
 	}
 	fmt.Println(acc)
 }
 
-func split(line string) ([]int, []int, []int) {
-	files := make([]int, len(line)/2)
-	file_dists := make([]int, len(line)/2)
+func split(line string) ([]int, []int) {
+	files := make([]int, len(line)/2+1)
 	gaps := make([]int, len(line)/2)
-	dist_acc := 0
 	for i, val := range line {
 		if i%2 == 0 {
 			files[i/2] = int(val - '0')
-			file_dists[i/2] = dist_acc
-			dist_acc += files[i/2]
 		} else {
+			if i/2 >= len(gaps) {
+				continue
+			}
 			gaps[i/2] = int(val - '0')
-			dist_acc += gaps[i/2]
 		}
 	}
-	return files, gaps, file_dists
+	return files, gaps
+}
+
+func organizeFiles2(files, gaps []int) (map[int][][]int, []int, []int, []int) {
+	filed_gaps := make(map[int][][]int)
+	gaps_created := make([]int, len(files))
+	for i := len(files) - 1; i >= 0; i-- { // file
+		for j := 0; j <= i; j++ { // gap
+			if files[i] > 0 && gaps[j] >= files[i] {
+				filed_gaps[j] = append(filed_gaps[j], []int{i, files[i]})
+				gaps[j] = gaps[j] - files[i]
+				gaps_created[i] = files[i]
+				files[i] = 0
+			}
+		}
+
+	}
+	return filed_gaps, files, gaps, gaps_created
 }
 
 func organizeFiles(files, gaps, file_dists []int, filed_gaps [][]int, unfiled_gaps map[int]int) ([][]int, map[int]int) {
@@ -63,36 +98,6 @@ func organizeFiles(files, gaps, file_dists []int, filed_gaps [][]int, unfiled_ga
 					gaps[i] = gaps[i] - files[j]
 					files[j] = 0
 					return organizeFiles(files, gaps, file_dists, filed_gaps, unfiled_gaps)
-				}
-			}
-		}
-	}
-	return filed_gaps, unfiled_gaps
-}
-
-func organizeFiles2(files, gaps, file_dists []int, filed_gaps [][]int, unfiled_gaps map[int]int) ([][]int, map[int]int) {
-	for f := 0; f < len(files)*2-1; f++ {
-		if f%2 == 0 {
-			if files[f/2] > 0 {
-				fmt.Println(f/2, files[f/2])
-				filed_gaps = append(filed_gaps, []int{f, files[f/2]})
-				files[f/2] = 0
-			}
-		} else {
-			for j := len(files) - 1; j >= f/2; j-- {
-				for i := 0; i < len(gaps); i++ {
-					if j == 0 {
-						fmt.Println(j, files[j])
-						filed_gaps = append(filed_gaps, []int{i, gaps[i]})
-						files[j] = 0
-					} else if files[j] > 0 && files[j] <= gaps[i] {
-						fmt.Println(j, files[j])
-						filed_gaps = append(filed_gaps, []int{j, files[j]})
-						unfiled_gaps[file_dists[j]] = files[j]
-						gaps[i] = gaps[i] - files[j]
-						files[j] = 0
-						return organizeFiles2(files, gaps, file_dists, filed_gaps, unfiled_gaps)
-					}
 				}
 			}
 		}

@@ -170,16 +170,18 @@ def part2(filename):
                     for box in involved:
                         boxes.add(Box(box[0] + d[0], box[1] + d[0], box[2] + d[1]))
                 robot = pos
-        if verbose:
-            show_pt2(walls, boxes, robot, size) 
-
+        if ix > 1000 and ix < 2000:
+            answer = 0
+            for box in boxes:
+                answer += (100 * box[2]) + box[0]
+            print(f"{ix}: {answer}")
+            
     answer = 0
     for box in boxes:
         answer += (100 * box[2]) + box[0]
 
     print(f"Part 2: {answer}")
     print("Final Position:")
-    show_pt2(walls, boxes, robot, size)
     return answer
 
 if __name__ == '__main__':

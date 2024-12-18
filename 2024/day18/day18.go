@@ -1,7 +1,6 @@
 package main
 
 import (
-	"container/heap"
 	"fmt"
 	"os"
 	"strconv"
@@ -19,22 +18,17 @@ type Step struct {
 }
 
 func main() {
-	falling_bits, size, time := parseInput("../_input/day18.txt")
+	falling_bits, size, time := parseInput("../_sample/day18.txt")
 	bit_falling_rock := make(map[Pos]int)
 	for i, rock := range falling_bits {
 		bit_falling_rock[rock] = i
 	}
-	step_heap := &StepHeap{{Pos{0, 0}, 0}}
-	heap.Init(step_heap)
-	steps := walkMem([]Step{{Pos{0, 0}, 0}}, make(map[Pos]bool), bit_falling_rock, time, size)
+	steps := walkMem(Step{Pos{0, 0}, 0}, make(map[Pos]bool), bit_falling_rock, time, size)
 	fmt.Println(steps)
 }
 
-func walkMem(next StepHeap, visited map[Pos]bool, blocked map[Pos]int, time int, size int) int {
-	curr := heap.Pop(&next).(Step)
+func walkMem(curr Step, visited map[Pos]bool, blocked map[Pos]int, time int, size int) int {
 	visited[curr.pos] = true
-
-	fmt.Println(next)
 
 	if curr.pos.x == size && curr.pos.y == size {
 		return curr.time
@@ -46,10 +40,9 @@ func walkMem(next StepHeap, visited map[Pos]bool, blocked map[Pos]int, time int,
 		if visited[poss_next] || (is_blocked && when < time) || !inBound(poss_next, size) {
 			continue
 		}
-		next.Push(Step{poss_next, curr.time + 1})
+		walkMem(Step{poss_next, curr.time + 1}, visited, blocked, time, size)
 	}
-
-	return walkMem(next, visited, blocked, time, size)
+	return -1
 }
 
 func inBound(pos Pos, size int) bool {
@@ -81,32 +74,4 @@ func parseInput(file string) ([]Pos, int, int) {
 		bits[i] = Pos{x, y}
 	}
 	return bits, size, time
-}
-
-type StepHeap []Step
-
-func (h StepHeap) Len() int {
-	return len(h)
-}
-
-func (h StepHeap) Less(i int, j int) bool {
-	return h[i].time < h[j].time
-}
-
-func (h StepHeap) Swap(i int, j int) {
-	h[i], h[j] = h[j], h[i]
-}
-
-func (s *StepHeap) Push(x any) {
-	h := *s
-	h = append(h, x.(Step))
-	*s = h
-}
-
-func (h *StepHeap) Pop() any {
-	old := *h
-	n := len(old)
-	x := old[n-1]
-	*h = old[0 : n-1]
-	return x
 }

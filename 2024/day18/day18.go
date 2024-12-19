@@ -3,6 +3,7 @@ package main
 import (
 	"container/heap"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -24,73 +25,63 @@ type Path struct {
 }
 
 func main() {
-	falling_bits, size, time := parseInput("../_sample/day18.txt")
+	falling_bits, size, time := parseInput("../_input/day18.txt")
 	bit_falling_rock := make(map[Pos]int)
 	for i, rock := range falling_bits {
 		bit_falling_rock[rock] = i
 	}
-
-	steps := walkMem([]Step{{Pos{0, 0}, 0}}, make(map[Pos]bool), bit_falling_rock, time, size, 0)
-	max_time := exitPathExistsTime([]Step{{Pos{0, 0}, 0}}, make(map[Pos]bool), bit_falling_rock, size, 0)
-
-	fmt.Println(steps)
-	fmt.Println(max_time)
-
+	steps := walkMem([]Path{{[]Pos{{0, 0}}, 0}}, make(map[Pos]bool), bit_falling_rock, time, size, 0)
+	fmt.Println("P1", steps.time)
+	blocked_time := 0
+	for {
+		if steps.time == -1 {
+			fmt.Println("P2", blocked_time, falling_bits[blocked_time])
+			break
+		}
+		blocked_time = pathIsBlocked(steps, bit_falling_rock, blocked_time)
+		steps = walkMem([]Path{{[]Pos{{0, 0}}, 0}}, make(map[Pos]bool), bit_falling_rock, blocked_time, size, 0)
+	}
 }
 
-func walkMem(next StepHeap, visited map[Pos]bool, blocked map[Pos]int, time, size, recur int) int {
+func walkMem(next PathHeap, visited map[Pos]bool, blocked map[Pos]int, time, size, recur int) Path {
 	for {
-		curr := heap.Pop(&next).(Step)
-		if visited[curr.pos] {
+		if next.Len() == 0 {
+			return Path{make([]Pos, 0), -1}
+		}
+		curr := heap.Pop(&next).(Path)
+		curr_pos := curr.path[len(curr.path)-1]
+		if visited[curr_pos] {
 			continue
 		}
+		visited[curr_pos] = true
 
-		visited[curr.pos] = true
-
-		if curr.pos.x == size && curr.pos.y == size {
-			return curr.time
+		if curr_pos.x == size && curr_pos.y == size {
+			return curr
 		}
 
 		for _, d := range dirs() {
-			poss_next := addPos(curr.pos, d)
+			poss_next := addPos(curr_pos, d)
 			when, is_blocked := blocked[poss_next]
-			if visited[poss_next] || (is_blocked && when < time) || !inBound(poss_next, size) {
+			if visited[poss_next] || (is_blocked && when <= time) || !inBound(poss_next, size) {
 				continue
-			} else {
-				next.Push(Step{poss_next, curr.time + 1})
 			}
+			new_array := make([]Pos, len(curr.path)+1)
+			copy(new_array, curr.path)
+			new_array[len(curr.path)] = poss_next
+			next.Push(Path{new_array, curr.time + 1})
 		}
 		recur += 1
 	}
 }
 
-func exitPathExistsTime(next StepHeap, visited map[Pos]bool, blocked map[Pos]int, size, recur int) Step {
-	rock_blocked := Step{Pos{0, 0}, 0}
-	for {
-		if len(next) == 0 {
-			return rock_blocked
+func pathIsBlocked(path Path, blocked map[Pos]int, time int) int {
+	soonest_blocked := math.MaxInt64
+	for _, spot := range path.path {
+		if blocked[spot] > time {
+			soonest_blocked = min(soonest_blocked, blocked[spot])
 		}
-		curr := heap.Pop(&next).(Step)
-		when_blocked := blocked[curr.pos]
-		if when_blocked > 0 && rock_blocked.time < when_blocked {
-			rock_blocked = Step{curr.pos, when_blocked}
-			continue
-		}
-
-		if visited[curr.pos] {
-			continue
-		}
-		visited[curr.pos] = true
-
-		for _, d := range dirs() {
-			poss_next := addPos(curr.pos, d)
-			if visited[poss_next] || !inBound(poss_next, size) {
-				continue
-			}
-			next.Push(Step{poss_next, curr.time + 1})
-		}
-		recur += 1
 	}
+	return soonest_blocked
 }
 
 func inBound(pos Pos, size int) bool {
@@ -124,27 +115,27 @@ func parseInput(file string) ([]Pos, int, int) {
 	return bits, size, time
 }
 
-type StepHeap []Step
+type PathHeap []Path
 
-func (h StepHeap) Len() int {
+func (h PathHeap) Len() int {
 	return len(h)
 }
 
-func (h StepHeap) Less(i int, j int) bool {
+func (h PathHeap) Less(i int, j int) bool {
 	return h[i].time < h[j].time
 }
 
-func (h StepHeap) Swap(i int, j int) {
+func (h PathHeap) Swap(i int, j int) {
 	h[i], h[j] = h[j], h[i]
 }
 
-func (s *StepHeap) Push(x any) {
+func (s *PathHeap) Push(x any) {
 	h := *s
-	h = append(h, x.(Step))
+	h = append(h, x.(Path))
 	*s = h
 }
 
-func (h *StepHeap) Pop() any {
+func (h *PathHeap) Pop() any {
 	old := *h
 	n := len(old)
 	x := old[n-1]

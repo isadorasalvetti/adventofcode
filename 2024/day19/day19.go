@@ -8,69 +8,42 @@ import (
 
 func main() {
 	_, towels, orders := parseInput("../_input/day19.txt")
-	fmt.Println(towels)
-	will_split := make(map[string]bool)
-	acc := 0
+	will_split := make(map[string]int)
+	acc1 := 0
+	acc2 := 0
 	for _, o := range orders {
-		s := fitsTowel(towels, will_split, o)
+		s := fitsTowel(towels, will_split, o, 0)
 		fmt.Println("DONE:", o, s)
-		if s {
-			acc += 1
+		if s > 0 {
+			acc1 += 1
 		}
+		acc2 += s
 	}
-	fmt.Println(acc)
+	fmt.Println(acc1)
+	fmt.Println(acc2)
 }
 
-func fitsTowel(towels []string, will_fit map[string]bool, order string) bool {
-	in, ws := will_fit[order]
+func fitsTowel(towels []string, will_fit map[string]int, order string, ret int) int {
+	ws, in := will_fit[order]
 	if in {
 		return ws
 	}
+
 	for _, t := range towels {
-		if len(t) <= len(order) && order[:len(t)] == t {
-			if len(order) == len(t) {
-				return true
-			}
-			rest_fits := fitsTowel(towels, will_fit, order[len(t):])
-			will_fit[order[len(t):]] = rest_fits
-			if rest_fits {
-				return true
-			}
+		rest := strings.TrimSuffix(order, t)
+		if rest == order {
+			continue
 		}
-	}
-	return false
-}
-
-func trySplit(towels map[string]bool, will_split map[string]bool, order string, split int) bool {
-	in, ws := will_split[order]
-	if in {
-		return ws
-	}
-
-	head := order[:split]
-	tail := order[split:]
-	if len(head) == 0 {
-		panic("head should never be empty")
-	}
-	//fmt.Println("Got", head, tail, split, len(order))
-
-	if towels[head] {
-		if len(tail) == 0 {
-			return true
+		if len(rest) == 0 {
+			ret += 1
+			continue
 		}
-
-		tail_split := trySplit(towels, will_split, tail, 1)
-		will_split[tail] = tail_split
-		if tail_split {
-			//fmt.Println("Tail split worked")
-			return true
-		}
-		//fmt.Println("Bad head/tail split, continue", split, order, len(order))
+		rest_fits := fitsTowel(towels, will_fit, rest, 0)
+		//fmt.Println(t, rest, rest_fits)
+		will_fit[rest] = rest_fits
+		ret += rest_fits
 	}
-	if len(tail) == 0 {
-		return false
-	}
-	return trySplit(towels, will_split, order, split+1)
+	return ret
 }
 
 func parseInput(file string) (map[string]bool, []string, []string) {

@@ -10,34 +10,6 @@ import (
 var moves_cache = map[toFrom][]rune{}
 var bot_cache = map[string][]rune{}
 
-func main() {
-	acc := 0
-	robots := 25
-	input := "../_input/day21.txt"
-
-	codes, code_num := parseMap(input)
-	for i, code := range codes {
-		this_acc := 0
-		current := 3
-		for _, char := range code {
-			snipp := append(moveKeypad(current, char), 'A')
-			for j := 0; j < robots; j++ {
-				n_snipp := solveDirpad('A', snipp, make([]rune, 0))
-				bot_cache[string(snipp)] = n_snipp
-				snipp = n_snipp
-				fmt.Println("Bot", j)
-
-			}
-			this_acc += len(snipp)
-			current = char
-			fmt.Println("Done", i, string(char))
-		}
-		fmt.Println("Done", code_num, this_acc)
-		acc += this_acc * code_num[i]
-	}
-	fmt.Println(acc)
-}
-
 //+---+---+---+
 //|10 |11 |12 |
 //+---+---+---+
@@ -54,27 +26,49 @@ func main() {
 //| < | v | > |
 //+---+---+---+
 
-func solveDirpad(curr rune, seq []rune, res []rune) []rune {
-	consumed := make([]rune, 0)
+func main() {
+	acc := 0
+	robots := 2
+	input := "../_sample/day21.txt"
+
+	codes, code_num := parseMap(input)
+	for i, code := range codes {
+		this_acc := 0
+		current := 3
+		for _, char := range code {
+			snipp := append(moveKeypad(current, char), 'A')
+			//fmt.Println("From numpad", string(snipp))
+			snipp = solveDirpad('A', snipp, make([]rune, 0), robots)
+			this_acc += len(snipp)
+			current = char
+			//fmt.Println("Done", i, char)
+		}
+		fmt.Println("Done line", code_num[i], this_acc)
+		acc += this_acc * code_num[i]
+	}
+	fmt.Println(acc)
+}
+
+func solveDirpad(curr rune, seq []rune, res []rune, robots int) []rune {
+	if robots == 0 {
+		return seq
+	}
 	for {
 		if len(seq) == 0 {
 			return res
 		}
 
 		val, cached := bot_cache[string(seq)]
-		if cached {
+		if cached && false {
 			return val
 		}
 
 		target := seq[0]
-		next_move := moveDirpad(curr, target)
-		res = append(res, next_move...)
-		res = append(res, 'A')
+		next_move := append(moveDirpad(curr, target), 'A')
+		res = append(res, solveDirpad('A', next_move, make([]rune, 0), robots-1)...)
 
 		curr = target
 		seq = seq[1:]
-		consumed = append(consumed, curr)
-		bot_cache[string(consumed)] = seq
 	}
 }
 

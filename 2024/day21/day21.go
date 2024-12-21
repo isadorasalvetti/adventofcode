@@ -8,7 +8,12 @@ import (
 )
 
 var moves_cache = map[toFrom][]rune{}
-var bot_cache = map[string][]rune{}
+var bot_cache = map[BotStep]int{}
+
+type BotStep struct {
+	to_eval string
+	bots    int
+}
 
 //+---+---+---+
 //|10 |11 |12 |
@@ -28,8 +33,8 @@ var bot_cache = map[string][]rune{}
 
 func main() {
 	acc := 0
-	robots := 2
-	input := "../_sample/day21.txt"
+	robots := 25
+	input := "../_input/day21.txt"
 
 	codes, code_num := parseMap(input)
 	for i, code := range codes {
@@ -38,8 +43,7 @@ func main() {
 		for _, char := range code {
 			snipp := append(moveKeypad(current, char), 'A')
 			//fmt.Println("From numpad", string(snipp))
-			snipp = solveDirpad('A', snipp, make([]rune, 0), robots)
-			this_acc += len(snipp)
+			this_acc += solveDirpad('A', snipp, robots)
 			current = char
 			//fmt.Println("Done", i, char)
 		}
@@ -49,26 +53,31 @@ func main() {
 	fmt.Println(acc)
 }
 
-func solveDirpad(curr rune, seq []rune, res []rune, robots int) []rune {
+func solveDirpad(curr rune, seq []rune, robots int) int {
+	acc := 0
+	consumed := []rune{}
 	if robots == 0 {
-		return seq
+		return len(seq)
 	}
+
+	val, cached := bot_cache[BotStep{string(seq), robots}]
+	if cached {
+		return val
+	}
+
 	for {
 		if len(seq) == 0 {
-			return res
-		}
-
-		val, cached := bot_cache[string(seq)]
-		if cached && false {
-			return val
+			return acc
 		}
 
 		target := seq[0]
-		next_move := append(moveDirpad(curr, target), 'A')
-		res = append(res, solveDirpad('A', next_move, make([]rune, 0), robots-1)...)
-
+		next_move := moveDirpad(curr, target)
+		acc += solveDirpad('A', next_move, robots-1)
 		curr = target
 		seq = seq[1:]
+
+		consumed = append(consumed, target)
+		bot_cache[BotStep{string(consumed), robots}] = acc
 	}
 }
 
@@ -86,7 +95,7 @@ type toFrom struct {
 
 func moveDirpad(pos rune, target rune) []rune {
 	if pos == target {
-		return make([]rune, 0)
+		return []rune{'A'}
 	}
 
 	val, cached := moves_cache[toFrom{pos, target}]
@@ -103,9 +112,9 @@ func moveDirpad(pos rune, target rune) []rune {
 	}
 	col := roundUp(dir_pad[target], 3) - roundUp(dir_pad[pos], 3)
 	row := dir_pad[target] - dir_pad[pos] - (col * 3)
-	res_string := rowColSeq(row, col, dir_pad[pos], dir_pad[target], 4, true)
+	res_string := append(rowColSeq(row, col, dir_pad[pos], dir_pad[target], 4, true), 'A')
 	moves_cache[toFrom{pos, target}] = res_string
-	return rowColSeq(row, col, dir_pad[pos], dir_pad[target], 4, true)
+	return res_string
 }
 
 func rowColSeq(row, col, pos, target, blocked int, rev bool) []rune {
@@ -130,20 +139,21 @@ func rowColSeq(row, col, pos, target, blocked int, rev bool) []rune {
 		}
 	}
 
-	if roundUp(pos, 3)-roundUp(blocked, 3) == 0 && blocked%3 == target%3 || roundUp(target, 3)-roundUp(blocked, 3) == 0 && blocked%3 == pos%3 {
-		if target > pos || rev {
-			return append(seq1, seq2...)
-		} else {
-			return append(seq2, seq1...)
-		}
+	if roundUp(pos, 3)-roundUp(blocked, 3) == 0 && blocked%3 == target%3 {
+		return append(seq1, seq2...)
+	}
+
+	if roundUp(target, 3)-roundUp(blocked, 3) == 0 && blocked%3 == pos%3 {
+		return append(seq2, seq1...)
 	}
 
 	if len(seq1) == 0 || len(seq2) == 0 {
 		return append(seq1, seq2...)
 	}
-
-	if row < 0 || col > 0 {
+	if row < 0 {
 		return append(seq2, seq1...)
+	} else if col > 0 {
+		return append(seq1, seq2...)
 	}
 	return append(seq1, seq2...)
 }

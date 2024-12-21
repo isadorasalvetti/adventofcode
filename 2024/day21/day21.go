@@ -92,51 +92,48 @@ func moveDirpad(pos rune, target rune) [][]rune {
 	return rowColSeq(row, col, dir_pad[pos], 0)
 }
 
-func rowColSeq(row, col, target, blocked int) [][]rune {
-	seqs := make([][]rune, 0, 10)
+type Step struct {
+	place int
+	path  []rune
+}
 
-	col_s := 0
-	row_s := 0
+func rowColSeq(next []Step, target, dir_row, dir_col, blocked int) [][]rune {
+	paths_found := make([][]rune, 0)
+	arrows_row := []rune{'<', '>'}
+	arrows_col := []rune{'v', '^'}
 
-	if col > 0 {
-		seqs = append(seqs, []rune{'^'})
-		col_s = 1
-	} else if col < 0 {
-		seqs = append(seqs, []rune{'v'})
-		col_s = -1
-	}
-	if row > 0 {
-		row_s = 1
-	} else {
-		row_s = -1
+	for {
+		if len(next) == 0 {
+			return paths_found
+		}
+		head := next[0]
+		tail := next[1:]
+
+		if dir_row > 0 && roundUp(head.place+dir_row, 3) <= roundUp(target, 3) {
+			next = append(next, Step{head.place + dir_row, append(head.path, arrows_row[dir_row])})
+		} else if dir_row < 0 && roundUp(head.place+dir_row, 3) >= roundUp(target, 3) {
+			next = append(next, Step{head.place + dir_row, append(head.path, arrows_row[dir_row+1])})
+		}
+
+		if dir_col > 0 && head.place+3 <= target {
+			new_path := make([]rune, len(head.path)+1)
+			copy(new_path, head.path)
+			new_path[len(new_path)-1] = arrows_row[dir_row]
+			next = append(next, Step{head.place + 3*dir_col + dir_row, new_path})
+		} else if dir_col < 0 && head.place-3 >= target {
+			new_path := make([]rune, len(head.path)+1)
+			copy(new_path, head.path)
+			new_path[len(new_path)-1] = arrows_row[dir_row+1]
+			next = append(next, Step{head.place - 3*dir_row + dir_row, new_path})
+		}
+
+		if head.place+dir_row == target {
+			head.path = append(head.path, arrows_row[dir_row+1])
+		}
+
 	}
 
-	for col+row != 0 {
-		if target != blocked {
-			col -= col_s
-		}
-	}
-
-	if col > 0 {
-		for i := 0; i < col; i++ {
-			seq1 = append(seq1, '^')
-		}
-	} else {
-		for i := 0; i > col; i-- {
-			seq1 = append(seq1, 'v')
-		}
-	}
-
-	if row > 0 {
-		for i := 0; i < row; i++ {
-			seq2 = append(seq2, '>')
-		}
-	} else {
-		for i := 0; i > row; i-- {
-			seq2 = append(seq2, '<')
-		}
-	}
-	return [][]rune{append(seq1, seq2...), append(seq2, seq1...)}
+	return [][]rune{}
 }
 
 func roundUp(num int, div int) int {

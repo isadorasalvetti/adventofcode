@@ -8,26 +8,58 @@ import (
 )
 
 func main() {
-	input := "../_sample/day21.txt"
+	acc := 0
+	input := "../_input/day21.txt"
 	codes, code_num := parseMap(input)
 	for i, code := range codes {
 		current := 3
-		seq := make([]rune, 0, 10)
+		seqs := make([][]rune, 1, 10)
 		for _, char := range code {
 			move_possibilities := moveKeypad(current, char)
-			seq = append(seq, move_possibilities[0]...)
-			seq = append(seq, 'A')
+			curr_s := len(seqs)
+			for s := 0; s < curr_s; s++ {
+				for i, poss := range move_possibilities {
+					if i == len(move_possibilities)-1 {
+						seqs[s] = append(seqs[s], poss...)
+						seqs[s] = append(seqs[s], 'A')
+					} else {
+						new_seq := make([]rune, len(seqs[s]))
+						copy(new_seq, seqs[s])
+						new_seq = append(new_seq, poss...)
+						new_seq = append(new_seq, 'A')
+						seqs = append(seqs, new_seq)
+					}
+				}
+			}
 			current = char
 		}
-		res := moveDirpads(seq, 2)
-		fmt.Println("Final bot", string(seq))
-		fmt.Println(len(res), len(res)*code_num[i])
-	}
-}
 
-// - Press same button as long as possible.
-// - if in A, go up or right.
-// - if changing, change to down.
+		//for _, seq := range seqs {
+		//	fmt.Println(string(seq))
+		//}
+
+		res := make([][]rune, 0, 100)
+
+		for _, seq := range seqs {
+			res = append(res, solveDirpad('A', seq, make([][]rune, 1, 100))...)
+		}
+
+		res2 := make([][]rune, 0, 100)
+		for _, seq := range res {
+			sols := solveDirpad('A', seq, make([][]rune, 1))
+			res2 = append(res2, sols...)
+		}
+
+		min_steps := res2[0]
+		for _, r := range res2 {
+			if len(min_steps) > len(r) {
+				min_steps = r
+			}
+		}
+		acc += len(min_steps) * code_num[i]
+	}
+	fmt.Println(acc)
+}
 
 //+---+---+---+
 //|10 |11 |12 |
@@ -45,95 +77,91 @@ func main() {
 //| < | v | > |
 //+---+---+---+
 
+func solveDirpad(curr rune, seq []rune, res [][]rune) [][]rune {
+	if len(seq) == 0 {
+		return res
+	}
+
+	target := seq[0]
+	next_moves := moveDirpad(curr, target)
+
+	res_size := len(res)
+	for s := 0; s < res_size; s++ {
+		for i, poss := range next_moves {
+			if i == len(next_moves)-1 {
+				res[s] = append(res[s], poss...)
+			} else {
+				new_seq := make([]rune, len(res[s]))
+				copy(new_seq, res[s])
+				new_seq = append(new_seq, poss...)
+				res = append(res, new_seq)
+			}
+		}
+	}
+	for s, _ := range res {
+		res[s] = append(res[s], 'A')
+	}
+	return solveDirpad(target, seq[1:], res)
+}
+
 func moveKeypad(pos int, target int) [][]rune {
 	col := roundUp(target, 3) - roundUp(pos, 3)
 	row := target - pos - (col * 3)
 
-	return rowColSeq(row, col, pos, 1)
-}
-
-func solveDirpad(pos rune, seq []rune, res [][]rune) {
-	target := seq[0]
-	next_moves := moveDirpad(pos, target)
-	for i, r := range res {
-		for j, next_move := range next_moves {
-			fmt.Println(i, j, r, next_move)
-		}
-	}
-}
-
-func moveDirpads(code []rune, how_many_bots int) []rune {
-	current := 'A'
-	seq := make([]rune, 0, 10)
-	for _, char := range code {
-		move_possibilities := moveDirpad(current, char)
-		seq = append(seq, move_possibilities[0]...)
-		seq = append(seq, 'A')
-		current = char
-	}
-	fmt.Println("Bot", how_many_bots, string(seq))
-	if how_many_bots == 0 {
-		return seq
-	} else {
-		return moveDirpads(seq, how_many_bots-1)
-	}
+	return rowColSeq(row, col, pos, target, 1, false)
 }
 
 func moveDirpad(pos rune, target rune) [][]rune {
+	if pos == target {
+		return make([][]rune, 0)
+	}
 	var dir_pad = map[rune]int{
-		'^': 1,
-		'A': 2,
-		'<': 3,
-		'v': 4,
-		'>': 5,
+		'^': 5,
+		'A': 6,
+		'<': 1,
+		'v': 2,
+		'>': 3,
 	}
 	col := roundUp(dir_pad[target], 3) - roundUp(dir_pad[pos], 3)
 	row := dir_pad[target] - dir_pad[pos] - (col * 3)
-	return rowColSeq(row, col, dir_pad[pos], 0)
+	return rowColSeq(row, col, dir_pad[pos], dir_pad[target], 4, true)
 }
 
-type Step struct {
-	place int
-	path  []rune
-}
-
-func rowColSeq(next []Step, target, dir_row, dir_col, blocked int) [][]rune {
-	paths_found := make([][]rune, 0)
-	arrows_row := []rune{'<', '>'}
-	arrows_col := []rune{'v', '^'}
-
-	for {
-		if len(next) == 0 {
-			return paths_found
+func rowColSeq(row, col, pos, target, blocked int, rev bool) [][]rune {
+	seq1 := make([]rune, 0, 5)
+	seq2 := make([]rune, 0, 5)
+	if col > 0 {
+		for i := 0; i < col; i++ {
+			seq1 = append(seq1, '^')
 		}
-		head := next[0]
-		tail := next[1:]
-
-		if dir_row > 0 && roundUp(head.place+dir_row, 3) <= roundUp(target, 3) {
-			next = append(next, Step{head.place + dir_row, append(head.path, arrows_row[dir_row])})
-		} else if dir_row < 0 && roundUp(head.place+dir_row, 3) >= roundUp(target, 3) {
-			next = append(next, Step{head.place + dir_row, append(head.path, arrows_row[dir_row+1])})
+	} else {
+		for i := 0; i > col; i-- {
+			seq1 = append(seq1, 'v')
 		}
-
-		if dir_col > 0 && head.place+3 <= target {
-			new_path := make([]rune, len(head.path)+1)
-			copy(new_path, head.path)
-			new_path[len(new_path)-1] = arrows_row[dir_row]
-			next = append(next, Step{head.place + 3*dir_col + dir_row, new_path})
-		} else if dir_col < 0 && head.place-3 >= target {
-			new_path := make([]rune, len(head.path)+1)
-			copy(new_path, head.path)
-			new_path[len(new_path)-1] = arrows_row[dir_row+1]
-			next = append(next, Step{head.place - 3*dir_row + dir_row, new_path})
+	}
+	if row > 0 {
+		for i := 0; i < row; i++ {
+			seq2 = append(seq2, '>')
 		}
-
-		if head.place+dir_row == target {
-			head.path = append(head.path, arrows_row[dir_row+1])
+	} else {
+		for i := 0; i > row; i-- {
+			seq2 = append(seq2, '<')
 		}
-
 	}
 
-	return [][]rune{}
+	if roundUp(pos, 3)-roundUp(blocked, 3) == 0 && blocked%3 == target%3 || roundUp(target, 3)-roundUp(blocked, 3) == 0 && blocked%3 == pos%3 {
+		if target > pos || rev {
+			return [][]rune{append(seq1, seq2...)}
+		} else {
+			return [][]rune{append(seq2, seq1...)}
+		}
+	}
+
+	if len(seq1) == 0 || len(seq2) == 0 {
+		return [][]rune{append(seq1, seq2...)}
+	}
+
+	return [][]rune{append(seq1, seq2...), append(seq2, seq1...)}
 }
 
 func roundUp(num int, div int) int {

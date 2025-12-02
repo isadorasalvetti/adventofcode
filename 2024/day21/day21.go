@@ -34,7 +34,7 @@ type BotStep struct {
 func main() {
 	acc := 0
 	robots := 25
-	input := "../_input/day21.txt"
+	input := "../_sample/day21.txt"
 
 	codes, code_num := parseMap(input)
 	for i, code := range codes {

@@ -8,9 +8,13 @@
 *$py.class
 */.idea
 
-*/.calva/
-*/.clj-kondo/
+*/.calva/*
+*/.clj-kondo/*
 */.lein-repl-history
-*/.lsp/
+*/.lsp/*
 */.nrepl-port
-*/target/
+*/target/*
+
+*/2025/input.txt
+*.exe
+*/2025/.vscode/*
